@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <title>Gerenciador de Estoque</title>
+    <style>
+        body { font-family: sans-serif; max-width: 500px; margin: 50px auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
+        input, button { display: block; width: 100%; margin-bottom: 10px; padding: 10px; }
+        button { background-color: #28a745; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h2>Cadastrar Componente</h2>
+    <input type="text" id="nome" placeholder="Nome (ex: LED Vermelho)">
+    <input type="text" id="categoria" placeholder="Categoria (ex: Optoeletrônico)">
+    <input type="number" id="quantidade" placeholder="Quantidade">
+    <button onclick="cadastrar()">Salvar no Banco</button>
+    <link rel="stylesheet" href="style.css">
+
+    <hr>
+<h3>Itens no Estoque</h3>
+<div id="listaComponentes">
+    </div>
+
+    <script>
+    async function cadastrar() {
+    const botao = document.querySelector('button');
+    botao.disabled = true;
+    botao.innerText = "Salvando...";
+
+    const dados = {
+        nome: document.getElementById('nome').value,
+        categoria: document.getElementById('categoria').value,
+        quantidade: document.getElementById('quantidade').value
+    };
+
+    try {
+        const response = await fetch('/componentes', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(dados)
+        });
+
+        const resultado = await response.json(); // Lê o que o Node mandou
+
+        if (response.ok) {
+            alert(resultado.mensagem);
+            location.reload();
+        } else {
+            // Aqui ele mostra o "Este componente já está cadastrado!"
+            alert("Erro: " + resultado.mensagem);
+            botao.disabled = false;
+            botao.innerText = "Salvar no Banco";
+        }
+    } catch (error) {
+        alert("Erro de conexão com o servidor");
+        botao.disabled = false;
+        botao.innerText = "Salvar no Banco";
+    }
+}
+
+
+    async function carregarLista() {
+    const response = await fetch('/componentes');
+    const componentes = await response.json();
+    const lista = document.getElementById('listaComponentes');
+    
+    lista.innerHTML = componentes.map(c => `
+        <div style="border-bottom: 1px solid #eee; padding: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <strong>${c.nome}</strong> - ${c.categoria} (Qtd: ${c.quantidade})
+            </div>
+            <button onclick="excluir(${c.id})" style="width: 40px; background: #dc3545; margin: 0; padding: 5px;">X</button>
+        </div>
+    `).join('');
+}
+
+async function excluir(id) {
+    if (confirm("Tem certeza que deseja excluir este item?")) {
+        const response = await fetch(`/componentes/${id}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            carregarLista(); // Atualiza a lista sem precisar dar F5 na página
+        } else {
+            alert("Erro ao excluir!");
+        }
+    }
+}
+
+// Carrega a lista assim que abrir a página
+carregarLista();
+    </script>
+</body>
+</html>
